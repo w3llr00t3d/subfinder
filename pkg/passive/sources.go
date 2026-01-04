@@ -26,6 +26,7 @@ import (
 	"github.com/projectdiscovery/subfinder/v2/pkg/subscraping/sources/dnsdb"
 	"github.com/projectdiscovery/subfinder/v2/pkg/subscraping/sources/dnsdumpster"
 	"github.com/projectdiscovery/subfinder/v2/pkg/subscraping/sources/dnsrepo"
+	"github.com/projectdiscovery/subfinder/v2/pkg/subscraping/sources/domainsproject"
 	"github.com/projectdiscovery/subfinder/v2/pkg/subscraping/sources/driftnet"
 	"github.com/projectdiscovery/subfinder/v2/pkg/subscraping/sources/facebook"
 	"github.com/projectdiscovery/subfinder/v2/pkg/subscraping/sources/fofa"
@@ -33,10 +34,12 @@ import (
 	"github.com/projectdiscovery/subfinder/v2/pkg/subscraping/sources/github"
 	"github.com/projectdiscovery/subfinder/v2/pkg/subscraping/sources/hackertarget"
 	"github.com/projectdiscovery/subfinder/v2/pkg/subscraping/sources/hudsonrock"
-	"github.com/projectdiscovery/subfinder/v2/pkg/subscraping/sources/hunter"
 	"github.com/projectdiscovery/subfinder/v2/pkg/subscraping/sources/intelx"
 	"github.com/projectdiscovery/subfinder/v2/pkg/subscraping/sources/leakix"
+	"github.com/projectdiscovery/subfinder/v2/pkg/subscraping/sources/merklemap"
 	"github.com/projectdiscovery/subfinder/v2/pkg/subscraping/sources/netlas"
+	"github.com/projectdiscovery/subfinder/v2/pkg/subscraping/sources/onyphe"
+	"github.com/projectdiscovery/subfinder/v2/pkg/subscraping/sources/profundis"
 	"github.com/projectdiscovery/subfinder/v2/pkg/subscraping/sources/pugrecon"
 	"github.com/projectdiscovery/subfinder/v2/pkg/subscraping/sources/quake"
 	"github.com/projectdiscovery/subfinder/v2/pkg/subscraping/sources/rapiddns"
@@ -46,11 +49,13 @@ import (
 	"github.com/projectdiscovery/subfinder/v2/pkg/subscraping/sources/securitytrails"
 	"github.com/projectdiscovery/subfinder/v2/pkg/subscraping/sources/shodan"
 	"github.com/projectdiscovery/subfinder/v2/pkg/subscraping/sources/sitedossier"
+	"github.com/projectdiscovery/subfinder/v2/pkg/subscraping/sources/thc"
 	"github.com/projectdiscovery/subfinder/v2/pkg/subscraping/sources/threatbook"
 	"github.com/projectdiscovery/subfinder/v2/pkg/subscraping/sources/threatcrowd"
 	"github.com/projectdiscovery/subfinder/v2/pkg/subscraping/sources/virustotal"
 	"github.com/projectdiscovery/subfinder/v2/pkg/subscraping/sources/waybackarchive"
 	"github.com/projectdiscovery/subfinder/v2/pkg/subscraping/sources/whoisxmlapi"
+	"github.com/projectdiscovery/subfinder/v2/pkg/subscraping/sources/windvane"
 	"github.com/projectdiscovery/subfinder/v2/pkg/subscraping/sources/zoomeyeapi"
 	mapsutil "github.com/projectdiscovery/utils/maps"
 )
@@ -70,15 +75,17 @@ var AllSources = [...]subscraping.Source{
 	&digitorus.Source{},
 	&dnsdb.Source{},
 	&dnsdumpster.Source{},
+	&domainsproject.Source{},
 	&dnsrepo.Source{},
 	&driftnet.Source{},
 	&fofa.Source{},
 	&fullhunt.Source{},
 	&github.Source{},
 	&hackertarget.Source{},
-	&hunter.Source{},
 	&intelx.Source{},
 	&netlas.Source{},
+	&merklemap.Source{},
+	&onyphe.Source{},
 	&leakix.Source{},
 	&quake.Source{},
 	&pugrecon.Source{},
@@ -88,6 +95,7 @@ var AllSources = [...]subscraping.Source{
 	&robtex.Source{},
 	&rsecloud.Source{},
 	&securitytrails.Source{},
+	&profundis.Source{},
 	&shodan.Source{},
 	&sitedossier.Source{},
 	&threatbook.Source{},
@@ -95,6 +103,7 @@ var AllSources = [...]subscraping.Source{
 	&virustotal.Source{},
 	&waybackarchive.Source{},
 	&whoisxmlapi.Source{},
+	&windvane.Source{},
 	&zoomeyeapi.Source{},
 	&facebook.Source{},
 	// &threatminer.Source{}, // failing  api
@@ -102,6 +111,7 @@ var AllSources = [...]subscraping.Source{
 	&builtwith.Source{},
 	&hudsonrock.Source{},
 	&digitalyama.Source{},
+	&thc.Source{},
 }
 
 var sourceWarnings = mapsutil.NewSyncLockMap[string, string](
