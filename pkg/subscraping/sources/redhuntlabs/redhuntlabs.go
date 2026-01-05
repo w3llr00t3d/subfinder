@@ -28,6 +28,7 @@ type Source struct {
 	timeTaken time.Duration
 	errors    int
 	results   int
+	requests  int
 	skipped   bool
 }
 
@@ -35,6 +36,7 @@ func (s *Source) Run(ctx context.Context, domain string, session *subscraping.Se
 	results := make(chan subscraping.Result)
 	s.errors = 0
 	s.results = 0
+	s.requests = 0
 	pageSize := 1000
 	go func() {
 		defer func(startTime time.Time) {
@@ -56,6 +58,7 @@ func (s *Source) Run(ctx context.Context, domain string, session *subscraping.Se
 		baseUrl := randomApiInfo[0] + ":" + randomApiInfo[1]
 		requestHeaders := map[string]string{"X-BLOBR-KEY": randomApiInfo[2], "User-Agent": "subfinder"}
 		getUrl := fmt.Sprintf("%s?domain=%s&page=1&page_size=%d", baseUrl, domain, pageSize)
+		s.requests++
 		resp, err := session.Get(ctx, getUrl, "", requestHeaders)
 		if err != nil {
 			results <- subscraping.Result{Source: s.Name(), Type: subscraping.Error, Error: fmt.Errorf("encountered error: %v; note: if you get a 'limit has been reached' error, head over to https://devportal.redhuntlabs.com", err)}
@@ -82,6 +85,7 @@ func (s *Source) Run(ctx context.Context, domain string, session *subscraping.Se
 				default:
 				}
 				getUrl = fmt.Sprintf("%s?domain=%s&page=%d&page_size=%d", baseUrl, domain, page, pageSize)
+				s.requests++
 				resp, err := session.Get(ctx, getUrl, "", requestHeaders)
 				if err != nil {
 					results <- subscraping.Result{Source: s.Name(), Type: subscraping.Error, Error: fmt.Errorf("encountered error: %v; note: if you get a 'limit has been reached' error, head over to https://devportal.redhuntlabs.com", err)}
@@ -150,5 +154,6 @@ func (s *Source) Statistics() subscraping.Statistics {
 		Results:   s.results,
 		TimeTaken: s.timeTaken,
 		Skipped:   s.skipped,
+		Requests:  s.requests,
 	}
 }

@@ -22,6 +22,7 @@ type Source struct {
 	timeTaken time.Duration
 	errors    int
 	results   int
+	requests  int
 	skipped   bool
 }
 
@@ -37,6 +38,7 @@ func (s *Source) Run(ctx context.Context, domain string, session *subscraping.Se
 	results := make(chan subscraping.Result)
 	s.errors = 0
 	s.results = 0
+	s.requests = 0
 
 	go func() {
 		defer func(startTime time.Time) {
@@ -66,6 +68,7 @@ func (s *Source) enumerate(ctx context.Context, searchURL string, domainRegexp *
 	default:
 	}
 
+	s.requests++
 	resp, err := session.Get(ctx, searchURL, "", headers)
 	if err != nil && resp == nil {
 		results <- subscraping.Result{Source: s.Name(), Type: subscraping.Error, Error: err}
@@ -91,6 +94,7 @@ func (s *Source) enumerate(ctx context.Context, searchURL string, domainRegexp *
 		go func(item item) {
 			// The original item.Path causes 404 error because the Gitlab API is expecting the url encoded path
 			fileUrl := fmt.Sprintf("https://gitlab.com/api/v4/projects/%d/repository/files/%s/raw?ref=%s", item.ProjectId, url.QueryEscape(item.Path), item.Ref)
+			s.requests++
 			resp, err := session.Get(ctx, fileUrl, "", headers)
 			if err != nil {
 				if resp == nil || (resp != nil && resp.StatusCode != http.StatusNotFound) {
@@ -173,6 +177,7 @@ func (s *Source) Statistics() subscraping.Statistics {
 	return subscraping.Statistics{
 		Errors:    s.errors,
 		Results:   s.results,
+		Requests:  s.requests,
 		TimeTaken: s.timeTaken,
 		Skipped:   s.skipped,
 	}

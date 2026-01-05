@@ -18,6 +18,7 @@ type Source struct {
 	timeTaken time.Duration
 	errors    int
 	results   int
+	requests  int
 	skipped   bool
 }
 
@@ -26,6 +27,7 @@ func (s *Source) Run(ctx context.Context, domain string, session *subscraping.Se
 	results := make(chan subscraping.Result)
 	s.errors = 0
 	s.results = 0
+	s.requests = 0
 
 	go func() {
 		defer func(startTime time.Time) {
@@ -52,6 +54,7 @@ func (s *Source) Run(ctx context.Context, domain string, session *subscraping.Se
 			"Accept":       "text/event-stream",
 		}
 
+		s.requests++
 		resp, err := session.Post(ctx, "https://api.profundis.io/api/v2/common/data/subdomains", "",
 			headers, bytes.NewReader(requestBody))
 
@@ -123,5 +126,6 @@ func (s *Source) Statistics() subscraping.Statistics {
 		Results:   s.results,
 		TimeTaken: s.timeTaken,
 		Skipped:   s.skipped,
+		Requests:  s.requests,
 	}
 }

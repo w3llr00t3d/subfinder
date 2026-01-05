@@ -22,6 +22,7 @@ type Source struct {
 	timeTaken time.Duration
 	errors    int
 	results   int
+	requests  int
 	skipped   bool
 }
 
@@ -29,6 +30,7 @@ func (s *Source) Run(ctx context.Context, domain string, session *subscraping.Se
 	results := make(chan subscraping.Result)
 	s.errors = 0
 	s.results = 0
+	s.requests = 0
 
 	go func() {
 		defer func(startTime time.Time) {
@@ -46,6 +48,7 @@ func (s *Source) Run(ctx context.Context, domain string, session *subscraping.Se
 			"X-API-KEY": randomApiKey,
 		}
 		apiURL := fmt.Sprintf("https://www.reconeer.com/api/domain/%s", domain)
+		s.requests++
 		resp, err := session.Get(ctx, apiURL, "", headers)
 		if err != nil {
 			results <- subscraping.Result{Source: s.Name(), Type: subscraping.Error, Error: err}
@@ -106,5 +109,6 @@ func (s *Source) Statistics() subscraping.Statistics {
 		Results:   s.results,
 		TimeTaken: s.timeTaken,
 		Skipped:   s.skipped,
+		Requests:  s.requests,
 	}
 }

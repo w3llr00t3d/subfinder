@@ -43,6 +43,7 @@ type Source struct {
 	timeTaken time.Duration
 	errors    int
 	results   int
+	requests  int
 	skipped   bool
 }
 
@@ -51,6 +52,7 @@ func (s *Source) Run(ctx context.Context, domain string, session *subscraping.Se
 	results := make(chan subscraping.Result)
 	s.errors = 0
 	s.results = 0
+	s.requests = 0
 
 	go func() {
 		defer func(startTime time.Time) {
@@ -86,6 +88,7 @@ func (s *Source) enumerate(ctx context.Context, searchURL string, domainRegexp *
 	}
 
 	// Initial request to GitHub search
+	s.requests++
 	resp, err := session.Get(ctx, searchURL, "", headers)
 	isForbidden := resp != nil && resp.StatusCode == http.StatusForbidden
 	if err != nil && !isForbidden {
@@ -167,6 +170,7 @@ func (s *Source) proccesItems(ctx context.Context, items []item, domainRegexp *r
 			default:
 			}
 
+			s.requests++
 			resp, err := session.SimpleGet(ctx, rawURL(responseItem.HTMLURL))
 			if err != nil {
 				if resp != nil && resp.StatusCode != http.StatusNotFound {
@@ -277,6 +281,7 @@ func (s *Source) Statistics() subscraping.Statistics {
 	return subscraping.Statistics{
 		Errors:    s.errors,
 		Results:   s.results,
+		Requests:  s.requests,
 		TimeTaken: s.timeTaken,
 		Skipped:   s.skipped,
 	}

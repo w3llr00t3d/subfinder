@@ -27,6 +27,7 @@ type Source struct {
 	timeTaken time.Duration
 	errors    int
 	results   int
+	requests  int
 	skipped   bool
 }
 
@@ -35,6 +36,7 @@ func (s *Source) Run(ctx context.Context, domain string, session *subscraping.Se
 	results := make(chan subscraping.Result)
 	s.errors = 0
 	s.results = 0
+	s.requests = 0
 
 	go func() {
 		defer func(startTime time.Time) {
@@ -69,6 +71,7 @@ func (s *Source) Run(ctx context.Context, domain string, session *subscraping.Se
 			default:
 			}
 			api := fmt.Sprintf("https://api.%s/domain/search?q=%s&type=1&s=1000&page=%d", host, domain, currentPage)
+			s.requests++
 			resp, err := session.Get(ctx, api, "", headers)
 			isForbidden := resp != nil && resp.StatusCode == http.StatusForbidden
 			if err != nil {
@@ -132,5 +135,6 @@ func (s *Source) Statistics() subscraping.Statistics {
 		Results:   s.results,
 		TimeTaken: s.timeTaken,
 		Skipped:   s.skipped,
+		Requests:  s.requests,
 	}
 }

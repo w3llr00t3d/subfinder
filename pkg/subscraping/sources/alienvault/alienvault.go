@@ -23,6 +23,7 @@ type Source struct {
 	timeTaken time.Duration
 	results   int
 	errors    int
+	requests  int
 	apiKeys   []string
 	skipped   bool
 }
@@ -32,6 +33,7 @@ func (s *Source) Run(ctx context.Context, domain string, session *subscraping.Se
 	results := make(chan subscraping.Result)
 	s.errors = 0
 	s.results = 0
+	s.requests = 0
 
 	go func() {
 		defer func(startTime time.Time) {
@@ -45,6 +47,7 @@ func (s *Source) Run(ctx context.Context, domain string, session *subscraping.Se
 			return
 		}
 
+		s.requests++
 		resp, err := session.Get(ctx, fmt.Sprintf("https://otx.alienvault.com/api/v1/indicators/domain/%s/passive_dns", domain), "",
 			map[string]string{"Authorization": "Bearer " + randomApiKey})
 		if err != nil && resp == nil {
@@ -110,6 +113,7 @@ func (s *Source) Statistics() subscraping.Statistics {
 	return subscraping.Statistics{
 		Errors:    s.errors,
 		Results:   s.results,
+		Requests:  s.requests,
 		TimeTaken: s.timeTaken,
 		Skipped:   s.skipped,
 	}
