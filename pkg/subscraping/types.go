@@ -33,6 +33,15 @@ type Statistics struct {
 	Skipped   bool
 }
 
+// KeyRequirement represents the API key requirement level for a source
+type KeyRequirement int
+
+const (
+	NoKey KeyRequirement = iota
+	OptionalKey
+	RequiredKey
+)
+
 // Source is an interface inherited by each passive source
 type Source interface {
 	// Run takes a domain as argument and a session object
@@ -52,7 +61,11 @@ type Source interface {
 	// not just root domains.
 	HasRecursiveSupport() bool
 
-	// NeedsKey returns true if the source requires an API key
+	// KeyRequirement returns the API key requirement level for this source
+	KeyRequirement() KeyRequirement
+
+	// NeedsKey returns true if the source requires an API key.
+	// Deprecated: Use KeyRequirement() instead for more granular control.
 	NeedsKey() bool
 
 	AddApiKeys([]string)

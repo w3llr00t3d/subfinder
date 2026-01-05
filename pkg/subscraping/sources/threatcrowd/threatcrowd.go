@@ -108,9 +108,14 @@ func (s *Source) HasRecursiveSupport() bool {
 	return false
 }
 
+// KeyRequirement returns the API key requirement level for this source.
+func (s *Source) KeyRequirement() subscraping.KeyRequirement {
+	return subscraping.NoKey
+}
+
 // NeedsKey indicates if the source requires an API key.
 func (s *Source) NeedsKey() bool {
-	return false
+	return s.KeyRequirement() == subscraping.RequiredKey
 }
 
 // AddApiKeys is a no-op since ThreatCrowd does not require an API key.
