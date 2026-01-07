@@ -28,6 +28,7 @@ type Source struct {
 	timeTaken time.Duration
 	errors    atomic.Int32
 	results   atomic.Int32
+	requests  atomic.Int32
 	skipped   bool
 }
 
@@ -65,6 +66,7 @@ func (s *Source) Run(ctx context.Context, domain string, session *subscraping.Se
 	results := make(chan subscraping.Result)
 	s.errors.Store(0)
 	s.results.Store(0)
+	s.requests.Store(0)
 
 	// Waitgroup for subsources
 	var wg sync.WaitGroup
@@ -124,6 +126,7 @@ func (s *Source) Statistics() subscraping.Statistics {
 	return subscraping.Statistics{
 		Errors:    int(s.errors.Load()),
 		Results:   int(s.results.Load()),
+		Requests:  int(s.requests.Load()),
 		TimeTaken: s.timeTaken,
 		Skipped:   s.skipped,
 	}
@@ -144,6 +147,7 @@ func (s *Source) runSubsource(ctx context.Context, domain string, session *subsc
 
 	// Request
 	requestURL := fmt.Sprintf("%s%s?%s%s&summarize=host&summary_context=%s&summary_limit=%d", baseURL, epConfig.endpoint, epConfig.param, url.QueryEscape(domain), epConfig.context, summaryLimit)
+	s.requests.Add(1)
 	resp, err := session.Get(ctx, requestURL, "", headers)
 	if err != nil {
 		// HTTP 204 is not an error from the Driftnet API

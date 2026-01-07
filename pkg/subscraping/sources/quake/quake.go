@@ -36,6 +36,7 @@ type Source struct {
 	timeTaken time.Duration
 	errors    int
 	results   int
+	requests  int
 	skipped   bool
 }
 
@@ -44,6 +45,7 @@ func (s *Source) Run(ctx context.Context, domain string, session *subscraping.Se
 	results := make(chan subscraping.Result)
 	s.errors = 0
 	s.results = 0
+	s.requests = 0
 
 	go func() {
 		defer func(startTime time.Time) {
@@ -69,6 +71,7 @@ func (s *Source) Run(ctx context.Context, domain string, session *subscraping.Se
 			default:
 			}
 			var requestBody = fmt.Appendf(nil, `{"query":"domain: %s", "include":["service.http.host"], "latest": true, "size":%d, "start":%d}`, domain, pageSize, start)
+			s.requests++
 			resp, err := session.Post(ctx, "https://quake.360.net/api/v3/search/quake_service", "", map[string]string{
 				"Content-Type": "application/json", "X-QuakeToken": randomApiKey,
 			}, bytes.NewReader(requestBody))
@@ -157,5 +160,6 @@ func (s *Source) Statistics() subscraping.Statistics {
 		Results:   s.results,
 		TimeTaken: s.timeTaken,
 		Skipped:   s.skipped,
+		Requests:  s.requests,
 	}
 }

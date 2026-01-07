@@ -43,6 +43,7 @@ type Source struct {
 	timeTaken time.Duration
 	errors    int
 	results   uint64
+	requests  int
 	skipped   bool
 }
 
@@ -51,6 +52,7 @@ func (s *Source) Run(ctx context.Context, domain string, session *subscraping.Se
 	results := make(chan subscraping.Result)
 	s.errors = 0
 	s.results = 0
+	s.requests = 0
 
 	go func() {
 		defer func(startTime time.Time) {
@@ -70,6 +72,7 @@ func (s *Source) Run(ctx context.Context, domain string, session *subscraping.Se
 			"Accept":    "application/x-ndjson",
 		}
 
+		s.requests++
 		offsetMax, err := getMaxOffset(ctx, session, headers)
 		if err != nil {
 			results <- subscraping.Result{Source: sourceName, Type: subscraping.Error, Error: err}
@@ -92,6 +95,7 @@ func (s *Source) Run(ctx context.Context, domain string, session *subscraping.Se
 			}
 			url := urlTemplate + queryParams.Encode()
 
+			s.requests++
 			resp, err := session.Get(ctx, url, "", headers)
 			if err != nil {
 				results <- subscraping.Result{Source: sourceName, Type: subscraping.Error, Error: err}
@@ -199,6 +203,7 @@ func (s *Source) Statistics() subscraping.Statistics {
 	return subscraping.Statistics{
 		Errors:    s.errors,
 		Results:   int(s.results),
+		Requests:  s.requests,
 		TimeTaken: s.timeTaken,
 		Skipped:   s.skipped,
 	}
