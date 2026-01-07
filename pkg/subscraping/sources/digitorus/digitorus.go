@@ -90,8 +90,12 @@ func (s *Source) HasRecursiveSupport() bool {
 	return true
 }
 
+func (s *Source) KeyRequirement() subscraping.KeyRequirement {
+	return subscraping.NoKey
+}
+
 func (s *Source) NeedsKey() bool {
-	return false
+	return s.KeyRequirement() == subscraping.RequiredKey
 }
 
 func (s *Source) AddApiKeys(_ []string) {

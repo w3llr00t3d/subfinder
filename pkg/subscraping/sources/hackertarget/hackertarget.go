@@ -35,9 +35,8 @@ func (s *Source) Run(ctx context.Context, domain string, session *subscraping.Se
 
 		htSearchUrl := fmt.Sprintf("https://api.hackertarget.com/hostsearch/?q=%s", domain)
 		randomApiKey := subscraping.PickRandom(s.apiKeys, s.Name())
-		if randomApiKey == "" {
-			s.skipped = true
-			return
+		if randomApiKey != "" {
+			htSearchUrl = fmt.Sprintf("%s&apikey=%s", htSearchUrl, randomApiKey)
 		}
 
 		htSearchUrl = fmt.Sprintf("%s&apikey=%s", htSearchUrl, randomApiKey)
@@ -97,11 +96,14 @@ func (s *Source) HasRecursiveSupport() bool {
 	return true
 }
 
-func (s *Source) NeedsKey() bool {
-	return false
+func (s *Source) KeyRequirement() subscraping.KeyRequirement {
+	return subscraping.OptionalKey
 }
 
-// TODO: env variable will not work if NeedsKey is false, entire api key management needs to be refactored
+func (s *Source) NeedsKey() bool {
+	return s.KeyRequirement() == subscraping.RequiredKey
+}
+
 func (s *Source) AddApiKeys(keys []string) {
 	s.apiKeys = keys
 }

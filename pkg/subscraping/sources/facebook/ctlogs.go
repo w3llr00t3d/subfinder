@@ -167,9 +167,14 @@ func (s *Source) HasRecursiveSupport() bool {
 	return true
 }
 
+// KeyRequirement returns the API key requirement level for this source
+func (s *Source) KeyRequirement() subscraping.KeyRequirement {
+	return subscraping.RequiredKey
+}
+
 // NeedsKey returns true if the source requires an API key
 func (s *Source) NeedsKey() bool {
-	return true
+	return s.KeyRequirement() == subscraping.RequiredKey
 }
 
 // AddApiKeys adds api keys to the source

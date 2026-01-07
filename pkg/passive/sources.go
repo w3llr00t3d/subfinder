@@ -184,9 +184,9 @@ func New(sourceNames, excludedSourceNames []string, useAllSources, useSourcesSup
 		}
 	}
 
-	// TODO: Consider refactoring this to avoid potential duplication issues
 	for _, source := range sources {
-		if source.NeedsKey() {
+		keyReq := source.KeyRequirement()
+		if keyReq == subscraping.RequiredKey || keyReq == subscraping.OptionalKey {
 			if apiKey := os.Getenv(fmt.Sprintf("%s_API_KEY", strings.ToUpper(source.Name()))); apiKey != "" {
 				source.AddApiKeys([]string{apiKey})
 			}

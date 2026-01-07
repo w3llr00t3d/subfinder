@@ -38,14 +38,12 @@ func (s *Source) Run(ctx context.Context, domain string, session *subscraping.Se
 			close(results)
 		}(time.Now())
 
-		randomApiKey := subscraping.PickRandom(s.apiKeys, s.Name())
-		if randomApiKey == "" {
-			s.skipped = true
-			return
-		}
 		headers := map[string]string{
-			"Accept":    "application/json",
-			"X-API-KEY": randomApiKey,
+			"Accept": "application/json",
+		}
+		randomApiKey := subscraping.PickRandom(s.apiKeys, s.Name())
+		if randomApiKey != "" {
+			headers["X-API-KEY"] = randomApiKey
 		}
 		apiURL := fmt.Sprintf("https://www.reconeer.com/api/domain/%s", domain)
 		s.requests++
@@ -95,8 +93,12 @@ func (s *Source) HasRecursiveSupport() bool {
 	return false
 }
 
+func (s *Source) KeyRequirement() subscraping.KeyRequirement {
+	return subscraping.OptionalKey
+}
+
 func (s *Source) NeedsKey() bool {
-	return true
+	return s.KeyRequirement() == subscraping.RequiredKey
 }
 
 func (s *Source) AddApiKeys(keys []string) {
