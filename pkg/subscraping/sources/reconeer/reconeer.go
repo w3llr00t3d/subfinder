@@ -1,18 +1,22 @@
-// Package profundis logic
-package profundis
+package reconeer
 
 import (
-	"bufio"
-	"bytes"
 	"context"
 	"encoding/json"
-	"strings"
+	"fmt"
 	"time"
 
 	"github.com/projectdiscovery/subfinder/v2/pkg/subscraping"
 )
 
-// Source is the passive scraping agent
+type response struct {
+	Subdomains []subdomain `json:"subdomains"`
+}
+
+type subdomain struct {
+	Subdomain string `json:"subdomain"`
+}
+
 type Source struct {
 	apiKeys   []string
 	timeTaken time.Duration
@@ -22,7 +26,6 @@ type Source struct {
 	skipped   bool
 }
 
-// Run function returns all subdomains found with the service
 func (s *Source) Run(ctx context.Context, domain string, session *subscraping.Session) <-chan subscraping.Result {
 	results := make(chan subscraping.Result)
 	s.errors = 0
@@ -35,73 +38,51 @@ func (s *Source) Run(ctx context.Context, domain string, session *subscraping.Se
 			close(results)
 		}(time.Now())
 
-		randomApiKey := subscraping.PickRandom(s.apiKeys, s.Name())
-		if randomApiKey == "" {
-			s.skipped = true
-			return
-		}
-
-		requestBody, err := json.Marshal(map[string]string{"domain": domain})
-		if err != nil {
-			results <- subscraping.Result{Source: s.Name(), Type: subscraping.Error, Error: err}
-			s.errors++
-			return
-		}
-
 		headers := map[string]string{
-			"Content-Type": "application/json",
-			"X-API-KEY":    randomApiKey,
-			"Accept":       "text/event-stream",
+			"Accept": "application/json",
 		}
-
+		randomApiKey := subscraping.PickRandom(s.apiKeys, s.Name())
+		if randomApiKey != "" {
+			headers["X-API-KEY"] = randomApiKey
+		}
+		apiURL := fmt.Sprintf("https://www.reconeer.com/api/domain/%s", domain)
 		s.requests++
-		resp, err := session.Post(ctx, "https://api.profundis.io/api/v2/common/data/subdomains", "",
-			headers, bytes.NewReader(requestBody))
-
+		resp, err := session.Get(ctx, apiURL, "", headers)
 		if err != nil {
 			results <- subscraping.Result{Source: s.Name(), Type: subscraping.Error, Error: err}
 			s.errors++
-			session.DiscardHTTPResponse(resp)
 			return
 		}
 
-		defer func() {
-			if err := resp.Body.Close(); err != nil {
-				results <- subscraping.Result{Source: s.Name(), Type: subscraping.Error, Error: err}
-				s.errors++
-			}
-		}()
+		defer session.DiscardHTTPResponse(resp)
 
-		scanner := bufio.NewScanner(resp.Body)
-		for scanner.Scan() {
+		if resp.StatusCode != 200 {
+			results <- subscraping.Result{Source: s.Name(), Type: subscraping.Error, Error: fmt.Errorf("request failed with status %d", resp.StatusCode)}
+			s.errors++
+			return
+		}
+		var responseData response
+		decoder := json.NewDecoder(resp.Body)
+		err = decoder.Decode(&responseData)
+		if err != nil {
+			results <- subscraping.Result{Source: s.Name(), Type: subscraping.Error, Error: err}
+			s.errors++
+			return
+		}
+		for _, result := range responseData.Subdomains {
 			select {
 			case <-ctx.Done():
 				return
-			default:
-			}
-			line := strings.TrimSpace(scanner.Text())
-			if line == "" {
-				continue
-			}
-			select {
-			case <-ctx.Done():
-				return
-			case results <- subscraping.Result{Source: s.Name(), Type: subscraping.Subdomain, Value: line}:
+			case results <- subscraping.Result{Source: s.Name(), Type: subscraping.Subdomain, Value: result.Subdomain}:
 				s.results++
 			}
 		}
-
-		if err := scanner.Err(); err != nil {
-			results <- subscraping.Result{Source: s.Name(), Type: subscraping.Error, Error: err}
-			s.errors++
-		}
 	}()
-
 	return results
 }
 
 func (s *Source) Name() string {
-	return "profundis"
+	return "reconeer"
 }
 
 func (s *Source) IsDefault() bool {
@@ -113,7 +94,7 @@ func (s *Source) HasRecursiveSupport() bool {
 }
 
 func (s *Source) KeyRequirement() subscraping.KeyRequirement {
-	return subscraping.RequiredKey
+	return subscraping.OptionalKey
 }
 
 func (s *Source) NeedsKey() bool {

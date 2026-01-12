@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	jsoniter "github.com/json-iterator/go"
@@ -41,16 +42,18 @@ type response struct {
 type Source struct {
 	apiKeys   []string
 	timeTaken time.Duration
-	errors    int
-	results   int
+	errors    atomic.Int32
+	results   atomic.Int32
+	requests  atomic.Int32
 	skipped   bool
 }
 
 // Run function returns all subdomains found with the service
 func (s *Source) Run(ctx context.Context, domain string, session *subscraping.Session) <-chan subscraping.Result {
 	results := make(chan subscraping.Result)
-	s.errors = 0
-	s.results = 0
+	s.errors.Store(0)
+	s.results.Store(0)
+	s.requests.Store(0)
 
 	go func() {
 		defer func(startTime time.Time) {
@@ -86,11 +89,12 @@ func (s *Source) enumerate(ctx context.Context, searchURL string, domainRegexp *
 	}
 
 	// Initial request to GitHub search
+	s.requests.Add(1)
 	resp, err := session.Get(ctx, searchURL, "", headers)
 	isForbidden := resp != nil && resp.StatusCode == http.StatusForbidden
 	if err != nil && !isForbidden {
 		results <- subscraping.Result{Source: s.Name(), Type: subscraping.Error, Error: err}
-		s.errors++
+		s.errors.Add(1)
 		session.DiscardHTTPResponse(resp)
 		return
 	}
@@ -111,7 +115,7 @@ func (s *Source) enumerate(ctx context.Context, searchURL string, domainRegexp *
 	err = jsoniter.NewDecoder(resp.Body).Decode(&data)
 	if err != nil {
 		results <- subscraping.Result{Source: s.Name(), Type: subscraping.Error, Error: err}
-		s.errors++
+		s.errors.Add(1)
 		session.DiscardHTTPResponse(resp)
 		return
 	}
@@ -121,7 +125,7 @@ func (s *Source) enumerate(ctx context.Context, searchURL string, domainRegexp *
 	err = s.proccesItems(ctx, data.Items, domainRegexp, s.Name(), session, results)
 	if err != nil {
 		results <- subscraping.Result{Source: s.Name(), Type: subscraping.Error, Error: err}
-		s.errors++
+		s.errors.Add(1)
 		return
 	}
 
@@ -138,7 +142,7 @@ func (s *Source) enumerate(ctx context.Context, searchURL string, domainRegexp *
 			nextURL, err := url.QueryUnescape(link.URL)
 			if err != nil {
 				results <- subscraping.Result{Source: s.Name(), Type: subscraping.Error, Error: err}
-				s.errors++
+				s.errors.Add(1)
 				return
 			}
 			s.enumerate(ctx, nextURL, domainRegexp, tokens, session, results)
@@ -167,6 +171,7 @@ func (s *Source) proccesItems(ctx context.Context, items []item, domainRegexp *r
 			default:
 			}
 
+			s.requests.Add(1)
 			resp, err := session.SimpleGet(ctx, rawURL(responseItem.HTMLURL))
 			if err != nil {
 				if resp != nil && resp.StatusCode != http.StatusNotFound {
@@ -195,7 +200,7 @@ func (s *Source) proccesItems(ctx context.Context, items []item, domainRegexp *r
 							session.DiscardHTTPResponse(resp)
 							return
 						case results <- subscraping.Result{Source: name, Type: subscraping.Subdomain, Value: subdomain}:
-							s.results++
+							s.results.Add(1)
 						}
 					}
 				}
@@ -213,7 +218,7 @@ func (s *Source) proccesItems(ctx context.Context, items []item, domainRegexp *r
 					case <-ctx.Done():
 						return
 					case results <- subscraping.Result{Source: name, Type: subscraping.Subdomain, Value: subdomain}:
-						s.results++
+						s.results.Add(1)
 					}
 				}
 			}
@@ -265,8 +270,12 @@ func (s *Source) HasRecursiveSupport() bool {
 	return false
 }
 
+func (s *Source) KeyRequirement() subscraping.KeyRequirement {
+	return subscraping.RequiredKey
+}
+
 func (s *Source) NeedsKey() bool {
-	return true
+	return s.KeyRequirement() == subscraping.RequiredKey
 }
 
 func (s *Source) AddApiKeys(keys []string) {
@@ -275,8 +284,9 @@ func (s *Source) AddApiKeys(keys []string) {
 
 func (s *Source) Statistics() subscraping.Statistics {
 	return subscraping.Statistics{
-		Errors:    s.errors,
-		Results:   s.results,
+		Errors:    int(s.errors.Load()),
+		Results:   int(s.results.Load()),
+		Requests:  int(s.requests.Load()),
 		TimeTaken: s.timeTaken,
 		Skipped:   s.skipped,
 	}

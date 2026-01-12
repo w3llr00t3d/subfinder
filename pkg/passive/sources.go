@@ -43,6 +43,7 @@ import (
 	"github.com/projectdiscovery/subfinder/v2/pkg/subscraping/sources/pugrecon"
 	"github.com/projectdiscovery/subfinder/v2/pkg/subscraping/sources/quake"
 	"github.com/projectdiscovery/subfinder/v2/pkg/subscraping/sources/rapiddns"
+	"github.com/projectdiscovery/subfinder/v2/pkg/subscraping/sources/reconeer"
 	"github.com/projectdiscovery/subfinder/v2/pkg/subscraping/sources/redhuntlabs"
 	"github.com/projectdiscovery/subfinder/v2/pkg/subscraping/sources/robtex"
 	"github.com/projectdiscovery/subfinder/v2/pkg/subscraping/sources/rsecloud"
@@ -108,6 +109,7 @@ var AllSources = [...]subscraping.Source{
 	&facebook.Source{},
 	// &threatminer.Source{}, // failing  api
 	// &reconcloud.Source{}, // failing due to cloudflare bot protection
+	&reconeer.Source{},
 	&builtwith.Source{},
 	&hudsonrock.Source{},
 	&digitalyama.Source{},
@@ -182,9 +184,9 @@ func New(sourceNames, excludedSourceNames []string, useAllSources, useSourcesSup
 		}
 	}
 
-	// TODO: Consider refactoring this to avoid potential duplication issues
 	for _, source := range sources {
-		if source.NeedsKey() {
+		keyReq := source.KeyRequirement()
+		if keyReq == subscraping.RequiredKey || keyReq == subscraping.OptionalKey {
 			if apiKey := os.Getenv(fmt.Sprintf("%s_API_KEY", strings.ToUpper(source.Name()))); apiKey != "" {
 				source.AddApiKeys([]string{apiKey})
 			}

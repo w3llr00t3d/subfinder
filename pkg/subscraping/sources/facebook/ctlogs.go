@@ -78,6 +78,7 @@ type Source struct {
 	timeTaken time.Duration
 	errors    int
 	results   int
+	requests  int
 	skipped   bool
 }
 
@@ -86,6 +87,7 @@ func (s *Source) Run(ctx context.Context, domain string, session *subscraping.Se
 	results := make(chan subscraping.Result)
 	s.errors = 0
 	s.results = 0
+	s.requests = 0
 
 	if len(s.apiKeys) == 0 {
 		s.skipped = true
@@ -108,6 +110,7 @@ func (s *Source) Run(ctx context.Context, domain string, session *subscraping.Se
 				return
 			default:
 			}
+			s.requests++
 			resp, err := session.Get(ctx, domainsURL, "", nil)
 			if err != nil {
 				s.errors++
@@ -164,9 +167,14 @@ func (s *Source) HasRecursiveSupport() bool {
 	return true
 }
 
+// KeyRequirement returns the API key requirement level for this source
+func (s *Source) KeyRequirement() subscraping.KeyRequirement {
+	return subscraping.RequiredKey
+}
+
 // NeedsKey returns true if the source requires an API key
 func (s *Source) NeedsKey() bool {
-	return true
+	return s.KeyRequirement() == subscraping.RequiredKey
 }
 
 // AddApiKeys adds api keys to the source
@@ -192,6 +200,7 @@ func (s *Source) Statistics() subscraping.Statistics {
 	return subscraping.Statistics{
 		Errors:    s.errors,
 		Results:   s.results,
+		Requests:  s.requests,
 		TimeTaken: s.timeTaken,
 		Skipped:   s.skipped,
 	}

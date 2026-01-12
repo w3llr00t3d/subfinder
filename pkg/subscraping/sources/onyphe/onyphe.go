@@ -36,6 +36,7 @@ type Source struct {
 	timeTaken time.Duration
 	errors    int
 	results   int
+	requests  int
 	skipped   bool
 }
 
@@ -44,6 +45,7 @@ func (s *Source) Run(ctx context.Context, domain string, session *subscraping.Se
 	results := make(chan subscraping.Result)
 	s.errors = 0
 	s.results = 0
+	s.requests = 0
 
 	go func() {
 		defer func(startTime time.Time) {
@@ -73,6 +75,7 @@ func (s *Source) Run(ctx context.Context, domain string, session *subscraping.Se
 
 			urlWithQuery := fmt.Sprintf("https://www.onyphe.io/api/v2/search/?q=%s&page=%d&size=%d",
 				url.QueryEscape("category:resolver domain:"+domain), page, pageSize)
+			s.requests++
 			resp, err = session.Get(ctx, urlWithQuery, "", headers)
 
 			if err != nil {
@@ -147,8 +150,12 @@ func (s *Source) HasRecursiveSupport() bool {
 	return false
 }
 
+func (s *Source) KeyRequirement() subscraping.KeyRequirement {
+	return subscraping.RequiredKey
+}
+
 func (s *Source) NeedsKey() bool {
-	return true
+	return s.KeyRequirement() == subscraping.RequiredKey
 }
 
 func (s *Source) AddApiKeys(keys []string) {
@@ -159,6 +166,7 @@ func (s *Source) Statistics() subscraping.Statistics {
 	return subscraping.Statistics{
 		Errors:    s.errors,
 		Results:   s.results,
+		Requests:  s.requests,
 		TimeTaken: s.timeTaken,
 		Skipped:   s.skipped,
 	}
