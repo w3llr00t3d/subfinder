@@ -53,6 +53,7 @@ import (
 	"github.com/projectdiscovery/subfinder/v2/pkg/subscraping/sources/thc"
 	"github.com/projectdiscovery/subfinder/v2/pkg/subscraping/sources/threatbook"
 	"github.com/projectdiscovery/subfinder/v2/pkg/subscraping/sources/threatcrowd"
+	"github.com/projectdiscovery/subfinder/v2/pkg/subscraping/sources/urlscan"
 	"github.com/projectdiscovery/subfinder/v2/pkg/subscraping/sources/virustotal"
 	"github.com/projectdiscovery/subfinder/v2/pkg/subscraping/sources/waybackarchive"
 	"github.com/projectdiscovery/subfinder/v2/pkg/subscraping/sources/whoisxmlapi"
@@ -109,6 +110,7 @@ var AllSources = [...]subscraping.Source{
 	&threatbook.Source{},
 	&threatcrowd.Source{},
 	// &threatminer.Source{}, // failing  api
+	&urlscan.Source{},
 	&virustotal.Source{},
 	&waybackarchive.Source{},
 	&whoisxmlapi.Source{},
